@@ -1,75 +1,100 @@
-/*
-  Project: Smart Temperature Alert System
-  Course: IoT201 - INTRODUCTION TO IOTS
-  Students: Zaid Ahmed Khazaleh (188472) & Ahmad Radwan Ababneh (172393)
-*/
+// IoT201
+// Zaid Khazaleh & Ahmad Ababneh
 
-// --- Pin Definitions ---
 const int sensorPin = A0;   // TMP36 connected to analog pin A0
 const int greenLED  = 8;    // Green LED on pin 8
 const int redLED    = 9;    // Red LED on pin 9
 const int buzzerPin = 10;   // Buzzer on pin 10
 
-// --- Alert Threshold ---
 const float threshold = 30.0;  // Alert threshold in Celsius
 
 void setup() {
-  // Initialize digital pins as outputs
+
   pinMode(greenLED, OUTPUT);
   pinMode(redLED, OUTPUT);
   pinMode(buzzerPin, OUTPUT);
-  
-  // Initialize serial communication for monitoring
+
   Serial.begin(9600);
+
   Serial.println("Smart Temperature Alert System - Started");
 }
 
 void loop() {
-  // Read analog value from TMP36 sensor (0 - 1023)
+
   int rawValue = analogRead(sensorPin);
   
-  // Convert raw ADC value to voltage (5V reference)
+  // Convert raw value to voltage
   float voltage = rawValue * (5.0 / 1023.0);
-  
-  // Convert voltage to Celsius
-  // TMP36 offset is 500mV, scale factor is 10mV/degree
+
+  // Convert voltage to temperature
   float tempC = (voltage - 0.5) * 100.0;
 
-  // Print temperature to Serial Monitor
   Serial.print("Temperature: ");
   Serial.print(tempC);
   Serial.println(" C");
 
-  // Check temperature against threshold
+  // Normal condition
   if (tempC < threshold) {
-    // Normal state: Temperature is below threshold
-    digitalWrite(greenLED, HIGH);  // Turn ON green LED
-    digitalWrite(redLED, LOW);     // Turn OFF red LED
-    noTone(buzzerPin);             // Turn OFF buzzer
-  } else {
-    // Alert state: Temperature is above or equal to threshold
-    digitalWrite(greenLED, LOW);   // Turn OFF green LED
-    digitalWrite(redLED, HIGH);    // Turn ON red LED
-    tone(buzzerPin, 1000);         // Sound buzzer at 1kHz
+
+    digitalWrite(greenLED, HIGH);
+    digitalWrite(redLED, LOW);
+
+    noTone(buzzerPin);
+
   }
 
-  // Wait 1 second before next reading
+  // High temperature condition
+  else {
+
+    digitalWrite(greenLED, LOW);
+    digitalWrite(redLED, HIGH);
+
+    tone(buzzerPin, 1000);
+  }
+
   delay(1000);
 }
 
-/*
-----------------------------------------------------------------------
-README: How to Reproduce and Run the Simulation
-----------------------------------------------------------------------
 
-1. Open the Tinkercad project link provided in LINK.txt.
-2. Click on the "Code" button in the top right corner.
-3. Make sure the code view is set to "Text" mode.
-4. If the code area is empty, paste the entire code above into the text editor.
-5. Click on the "Start Simulation" button.
-6. Click on the "Serial Monitor" button at the bottom of the code panel to view temperature readings.
-7. Click on the TMP36 sensor in the circuit diagram. A slider will appear.
-8. Adjust the slider to change the temperature:
-   - Below 30°C: The green LED will turn on, indicating normal temperature.
-   - Above 30°C: The red LED will turn on and the buzzer will sound, indicating an alert.
-*/
+
+README
+-------------------------
+Components Used:
+- Arduino Uno
+- TMP36 Temperature Sensor
+- Green LED
+- Red LED
+- Piezo Buzzer
+- 2 Resistors (220 ohm)
+
+Connections:
+TMP36:
+Left pin  -> 5V
+Middle pin -> A0
+Right pin -> GND
+
+Green LED:
+Positive -> Pin 8 through resistor
+Negative -> GND
+
+Red LED:
+Positive -> Pin 9 through resistor
+Negative -> GND
+
+Buzzer:
+Positive -> Pin 10
+Negative -> GND
+
+
+How to Run:
+1. Open the project in Tinkercad.
+2. Start Simulation.
+3. Click on TMP36 sensor.
+4. Change the temperature value.
+
+Expected Result:
+- If temperature is below 30C:
+  Green LED turns ON.
+
+- If temperature is 30C or higher:
+  Red LED and buzzer turn ON.
