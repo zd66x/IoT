@@ -1,100 +1,214 @@
-// IoT201
 // Zaid Khazaleh & Ahmad Ababneh
 
-const int sensorPin = A0;   // TMP36 connected to analog pin A0
-const int greenLED  = 8;    // Green LED on pin 8
-const int redLED    = 9;    // Red LED on pin 9
-const int buzzerPin = 10;   // Buzzer on pin 10
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
 
-const float threshold = 30.0;  // Alert threshold in Celsius
+// LCD I2C address 0x27 with 16 columns and 2 rows
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+// Ultrasonic sensor pins
+const int trigPin = 7;
+const int echoPin = 6;
+
+// RGB LED pins
+const int redPin   = 11;
+const int bluePin  = 10;
+const int greenPin = 9;
+
+// Buzzer pin
+const int buzzerPin = 8;
 
 void setup() {
 
-  pinMode(greenLED, OUTPUT);
-  pinMode(redLED, OUTPUT);
+  // Ultrasonic sensor setup
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+
+  // RGB LED setup
+  pinMode(redPin, OUTPUT);
+  pinMode(greenPin, OUTPUT);
+  pinMode(bluePin, OUTPUT);
+
+  // Buzzer setup
   pinMode(buzzerPin, OUTPUT);
 
-  Serial.begin(9600);
+  // LCD initialization
+  lcd.init();
+  lcd.backlight();
 
-  Serial.println("Smart Temperature Alert System - Started");
+  // Welcome message
+  lcd.setCursor(0, 0);
+  lcd.print("Parking Assist");
+
+  delay(2000);
+
+  lcd.clear();
 }
 
 void loop() {
 
-  int rawValue = analogRead(sensorPin);
-  
-  // Convert raw value to voltage
-  float voltage = rawValue * (5.0 / 1023.0);
+  // Send ultrasonic pulse
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
 
-  // Convert voltage to temperature
-  float tempC = (voltage - 0.5) * 100.0;
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
 
-  Serial.print("Temperature: ");
-  Serial.print(tempC);
-  Serial.println(" C");
+  digitalWrite(trigPin, LOW);
 
-  // Normal condition
-  if (tempC < threshold) {
+  // Read echo duration
+  long duration = pulseIn(echoPin, HIGH, 30000);
 
-    digitalWrite(greenLED, HIGH);
-    digitalWrite(redLED, LOW);
+  // Convert duration to distance in cm
+  int distance = duration * 0.034 / 2;
+
+  lcd.setCursor(0, 0);
+
+  // No object detected
+  if (distance == 0 || distance > 300) {
+
+    lcd.print("Dist: --- cm    ");
+
+    setColor(0, 0, 0);
 
     noTone(buzzerPin);
-
   }
 
-  // High temperature condition
   else {
 
-    digitalWrite(greenLED, LOW);
-    digitalWrite(redLED, HIGH);
+    // Display distance
+    lcd.print("Dist: ");
+    lcd.print(distance);
+    lcd.print(" cm    ");
 
-    tone(buzzerPin, 1000);
+    lcd.setCursor(0, 1);
+
+    // Safe distance
+    if (distance > 100) {
+
+      lcd.print("Safe         ");
+
+      // Green color
+      setColor(0, 255, 0);
+
+      noTone(buzzerPin);
+    }
+
+    // Warning distance
+    else if (distance > 20) {
+
+      lcd.print("Warning!     ");
+
+      // Yellow color
+      setColor(255, 255, 0);
+
+      // Slow beep
+      tone(buzzerPin, 1000);
+
+      delay(distance * 2);
+
+      noTone(buzzerPin);
+
+      delay(distance * 2);
+    }
+
+    // Very close object
+    else {
+
+      lcd.print("STOP!        ");
+
+      // Red color
+      setColor(255, 0, 0);
+
+      // Continuous buzzer
+      tone(buzzerPin, 1000);
+    }
   }
 
-  delay(1000);
+  delay(100);
+}
+
+// Function to control RGB LED color
+void setColor(int red, int green, int blue) {
+
+  analogWrite(redPin, red);
+
+  analogWrite(greenPin, green);
+
+  analogWrite(bluePin, blue);
 }
 
 
-
+/*
 README
--------------------------
+
 Components Used:
 - Arduino Uno
-- TMP36 Temperature Sensor
-- Green LED
-- Red LED
+- Ultrasonic Sensor (HC-SR04)
+- LCD 16x2 with I2C
+- RGB LED
 - Piezo Buzzer
-- 2 Resistors (220 ohm)
+- Resistors
+
 
 Connections:
-TMP36:
-Left pin  -> 5V
-Middle pin -> A0
-Right pin -> GND
 
-Green LED:
-Positive -> Pin 8 through resistor
-Negative -> GND
+Ultrasonic Sensor:
+VCC  -> 5V
+GND  -> GND
+Trig -> Pin 7
+Echo -> Pin 6
 
-Red LED:
-Positive -> Pin 9 through resistor
-Negative -> GND
+
+RGB LED:
+Red pin    -> Pin 11
+Green pin  -> Pin 9
+Blue pin   -> Pin 10
+Common pin -> GND
+
 
 Buzzer:
-Positive -> Pin 10
+Positive -> Pin 8
 Negative -> GND
+
+
+LCD I2C:
+VCC -> 5V
+GND -> GND
+SDA -> A4
+SCL -> A5
 
 
 How to Run:
 1. Open the project in Tinkercad.
 2. Start Simulation.
-3. Click on TMP36 sensor.
-4. Change the temperature value.
+3. Move an object closer or farther from the ultrasonic sensor.
+4. Watch the LCD, RGB LED, and buzzer behavior.
+
 
 Expected Result:
-- If temperature is below 30C:
-  Green LED turns ON.
 
-- If temperature is 30C or higher:
-  Red LED and buzzer turn ON.
+If no object is detected:
+- LCD shows: Dist: --- cm
+- RGB LED OFF
+- Buzzer OFF
+
+
+If object distance is more than 100 cm:
+- LCD shows: Safe
+- Green light ON
+- Buzzer OFF
+
+
+If object distance is between 20 cm and 100 cm:
+- LCD shows: Warning!
+- Yellow light ON
+- Buzzer beeps slowly
+
+
+If object distance is less than or equal to 20 cm:
+- LCD shows: STOP!
+- Red light ON
+- Continuous buzzer sound
+
+*/
